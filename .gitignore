@@ -1,0 +1,15 @@
+# Data files
+user_data.csv
+*.csv  # If you want to ignore all CSV files
+
+# Environment files
+.env
+.env*
+
+# Virtual environment
+myenv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
