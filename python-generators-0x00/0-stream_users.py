@@ -18,7 +18,7 @@ def stream_users():
         conn = mysql.connector.connect(
             host = DB_HOST,
             user = DB_USER,
-            password = DB_PASSWORD,
+            passwd = DB_PASSWORD,
             database = DB_NAME
         )
         print("connection established")
