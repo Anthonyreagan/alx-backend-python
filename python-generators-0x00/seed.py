@@ -2,7 +2,6 @@ import mysql.connector
 from mysql.connector import Error
 import uuid
 import csv
-from typing import Generator, Dict, Any
 import os
 from dotenv import load_dotenv
 
@@ -24,7 +23,6 @@ def connect_db() -> mysql.connector.connection.MySQLConnection:
             user=DB_USER,
             password=DB_PASSWORD
         )
-        print("Connected to MySQL server")
         return connection
     except Error as e:
         print(f"Error connecting to MySQL: {e}")
@@ -36,7 +34,6 @@ def create_database(connection: mysql.connector.connection.MySQLConnection) -> N
     cursor = connection.cursor()
     try:
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-        print(f"Database {DB_NAME} created or already exists")
     except Error as e:
         print(f"Error creating database: {e}")
         raise
@@ -53,7 +50,6 @@ def connect_to_prodev() -> mysql.connector.connection.MySQLConnection:
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        print(f"Connected to database {DB_NAME}")
         return connection
     except Error as e:
         print(f"Error connecting to database {DB_NAME}: {e}")
@@ -73,7 +69,6 @@ def create_table(connection: mysql.connector.connection.MySQLConnection) -> None
                 INDEX (user_id)
             )
         """)
-        print("Table user_data created or already exists")
         connection.commit()
     except Error as e:
         print(f"Error creating table: {e}")
@@ -82,26 +77,25 @@ def create_table(connection: mysql.connector.connection.MySQLConnection) -> None
         cursor.close()
 
 
-def read_csv_data(file_path: str) -> Generator[Dict[str, Any], None, None]:
-    """Generator to read CSV data row by row"""
-    with open(file_path, mode='r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            yield row
-
-
-def insert_data(connection: mysql.connector.connection.MySQLConnection, data: Dict[str, Any]) -> None:
-    """Insert data into the database if it doesn't exist"""
+def insert_data(connection: mysql.connector.connection.MySQLConnection, csv_file: str) -> None:
+    """Insert data from CSV into the database"""
     cursor = connection.cursor()
     try:
-        # Check if user exists
-        cursor.execute("SELECT 1 FROM user_data WHERE user_id = %s", (data['user_id'],))
-        if cursor.fetchone() is None:
-            cursor.execute("""
-                INSERT INTO user_data (user_id, name, email, age)
-                VALUES (%s, %s, %s, %s)
-            """, (data['user_id'], data['name'], data['email'], float(data['age'])))
-            connection.commit()
+        with open(csv_file, mode='r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                # Generate UUID if not present
+                if 'user_id' not in row or not row['user_id']:
+                    row['user_id'] = str(uuid.uuid4())
+
+                # Insert if not exists
+                cursor.execute("SELECT 1 FROM user_data WHERE user_id = %s", (row['user_id'],))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO user_data (user_id, name, email, age)
+                        VALUES (%s, %s, %s, %s)
+                    """, (row['user_id'], row['name'], row['email'], float(row['age'])))
+        connection.commit()
     except Error as e:
         print(f"Error inserting data: {e}")
         connection.rollback()
@@ -110,8 +104,8 @@ def insert_data(connection: mysql.connector.connection.MySQLConnection, data: Di
         cursor.close()
 
 
-def stream_users(connection: mysql.connector.connection.MySQLConnection) -> Generator[Dict[str, Any], None, None]:
-    """Generator to stream users from database one by one"""
+def stream_users(connection: mysql.connector.connection.MySQLConnection) -> dict:
+    """Generator that streams users from database one by one"""
     cursor = connection.cursor(dictionary=True)
     try:
         cursor.execute("SELECT user_id, name, email, age FROM user_data")
@@ -122,41 +116,3 @@ def stream_users(connection: mysql.connector.connection.MySQLConnection) -> Gene
             yield row
     finally:
         cursor.close()
-
-
-def main():
-    # Step 1: Connect to MySQL server
-    connection = connect_db()
-
-    # Step 2: Create database
-    create_database(connection)
-    connection.close()
-
-    # Step 3: Connect to ALX_prodev database
-    prodev_connection = connect_to_prodev()
-
-    # Step 4: Create table
-    create_table(prodev_connection)
-
-    # Step 5: Insert data from CSV
-    csv_file = 'user_data.csv'
-    if os.path.exists(csv_file):
-        for row in read_csv_data(csv_file):
-            # Ensure user_id exists or generate one
-            if 'user_id' not in row or not row['user_id']:
-                row['user_id'] = str(uuid.uuid4())
-            insert_data(prodev_connection, row)
-        print("Data inserted successfully")
-    else:
-        print(f"CSV file {csv_file} not found")
-
-    # Step 6: Demonstrate streaming
-    print("\nStreaming users from database:")
-    for user in stream_users(prodev_connection):
-        print(user)
-
-    prodev_connection.close()
-
-
-if __name__ == "__main__":
-    main()

@@ -1,34 +1,51 @@
 import mysql.connector
 from mysql.connector import Error
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_USER = os.getenv('DB_USER', 'root')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+DB_NAME = 'ALX_prodev'
+
 def stream_users():
-    """Generator function that streams rows from user_data table one by one"""
+    conn = None
+    my_cursor = None
     try:
-        # Establish database connection
-        connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='',
-            database='ALX_prodev'
+        conn = mysql.connector.connect(
+            host = DB_HOST,
+            user = DB_USER,
+            password = DB_PASSWORD,
+            database = DB_NAME
         )
-        
-        cursor = connection.cursor(dictionary=True)  # Use dictionary cursor to get rows as dicts
-        
-        # Execute query to fetch all users
-        cursor.execute("SELECT * FROM user_data")
-        
-        # Fetch rows one by one and yield them
+        print("connection established")
+
+
+        my_cursor = conn.cursor(dictionary = True)
+
+        my_cursor.execute(" SELECT * FROM user_data")
+
         while True:
-            row = cursor.fetchone()
+            row = my_cursor.fetchone()
             if row is None:
                 break
             yield row
-            
+
     except Error as e:
-        print(f"Database error: {e}")
+        print(f"Database error : {e}")
+        raise
     finally:
-        # Clean up resources
-        if 'cursor' in locals():
-            cursor.close()
-        if 'connection' in locals():
-            connection.close()
+
+            my_cursor.close()
+            conn.close()
+            print("Database connection closed.")
+
+if __name__ == "__main__":
+  print("\nStreaming users:")
+for user in stream_users():
+    print(user)
+
+
