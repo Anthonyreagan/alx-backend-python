@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 import  seed
 
-def  paginate_users(page_size, offset):
+def paginate_users(page_size, offset):
     conn = None
     my_cursor = None
 
