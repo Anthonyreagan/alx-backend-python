@@ -4,12 +4,13 @@
 import unittest
 from parameterized import parameterized
 from unittest.mock import patch, Mock
-from utils import access_nested_map, get_json
+from utils import access_nested_map, get_json, memoize
 
 
 class TestAccessNestedMap(unittest.TestCase):
     """Test class for access_nested_map utility function
     """
+
     @parameterized.expand([
         ({"a": 1}, ("a",), 1),
         ({"a": {"b": 2}}, ("a",), {"b": 2}),
@@ -35,6 +36,7 @@ class TestAccessNestedMap(unittest.TestCase):
 class TestGetJson(unittest.TestCase):
     """Test class for get_json utility function
     """
+
     @parameterized.expand([
         ("http://example.com", {"payload": True}),
         ("http://holberton.io", {"payload": False}),
@@ -43,19 +45,49 @@ class TestGetJson(unittest.TestCase):
     def test_get_json(self, test_url, test_payload, mock_get):
         """Test get_json returns the expected result without making actual HTTP calls
         """
-        # Configure the mock to return a response with the test payload
         mock_response = Mock()
         mock_response.json.return_value = test_payload
         mock_get.return_value = mock_response
 
-        # Call the function
         result = get_json(test_url)
 
-        # Assert the mock was called exactly once with test_url
         mock_get.assert_called_once_with(test_url)
-
-        # Assert the result matches the test payload
         self.assertEqual(result, test_payload)
+
+
+class TestMemoize(unittest.TestCase):
+    """Test class for memoize decorator
+    """
+
+    def test_memoize(self):
+        """Test that memoize caches the result properly
+        """
+
+        class TestClass:
+            """Test class for memoization
+            """
+
+            def a_method(self):
+                return 42
+
+            @memoize
+            def a_property(self):
+                return self.a_method()
+
+        with patch.object(TestClass, 'a_method', return_value=42) as mocked_method:
+            test_instance = TestClass()
+
+            # First call - should call a_method
+            result1 = test_instance.a_property
+            # Second call - should use cached result
+            result2 = test_instance.a_property
+
+            # Both calls should return the same result
+            self.assertEqual(result1, 42)
+            self.assertEqual(result2, 42)
+
+            # a_method should only be called once
+            mocked_method.assert_called_once()
 
 
 if __name__ == '__main__':
