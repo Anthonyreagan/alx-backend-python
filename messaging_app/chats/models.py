@@ -24,12 +24,18 @@ class User(AbstractUser):
     )
     first_name = models.CharField(
         _('first name'),
-        max_length=150
+        max_length=150,
+        blank=True
     )
     last_name = models.CharField(
         _('last name'),
-        max_length=150
+        max_length=150,
+        blank=True
     )
+    password = models.CharField(
+        _('password'),
+        max_length=128
+    )  # Explicit password field
     profile_picture = models.ImageField(
         upload_to='profile_pics/',
         null=True,
