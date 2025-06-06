@@ -1,7 +1,7 @@
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework import viewsets, status, mixins
+from rest_framework import viewsets, status, mixins, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -26,6 +26,8 @@ class ConversationViewSet(viewsets.GenericViewSet,
     """
     queryset = Conversation.objects.all()
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -72,6 +74,8 @@ class MessageViewSet(viewsets.GenericViewSet,
     """
     queryset = Message.objects.all()
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+
 
     def get_serializer_class(self):
         if self.action == 'create':
