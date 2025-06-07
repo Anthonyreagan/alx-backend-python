@@ -1,18 +1,24 @@
 from django.urls import path, include
-from rest_framework import routers
+from rest_framework_extensions.routers import ExtendedDefaultRouter
 from .views import ConversationViewSet, MessageViewSet
-from rest_framework_extensions.routers import NestedDefaultRouter  # Add this import
 
+router = ExtendedDefaultRouter()
 
-# Create a router and register our viewsets
-router = routers.DefaultRouter()
+# Parent router (conversations)
+conversation_route = router.register(
+    r'conversations',
+    ConversationViewSet,
+    basename='conversations'
+)
 
-router.register(r'conversations', ConversationViewSet, basename='conversation')
-router.register(r'messages', MessageViewSet, basename='message')
+# Nested router (messages under conversations)
+conversation_route.register(
+    r'messages',
+    MessageViewSet,
+    basename='conversation-messages',
+    parents_query_lookups=['conversation']
+)
 
-nested_router = NestedDefaultRouter(router, r'conversations', lookup='conversation')
-nested_router.register(r'messages', MessageViewSet, basename='conversation-messages')
-# The API URLs are now determined automatically by the router
 urlpatterns = [
     path('', include(router.urls)),
 ]
