@@ -13,3 +13,9 @@ venv/
 # Python cache
 __pycache__/
 *.py[cod]
+
+# JetBrains IDE
+.idea/
+*.iml
+
+.db.sqlite
