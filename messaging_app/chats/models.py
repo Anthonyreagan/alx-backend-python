@@ -6,12 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 class User(AbstractUser):
     """Custom user model extending Django's AbstractUser with additional fields"""
-    user_id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-        unique=True
-    )
+
     email = models.EmailField(
         _('email address'),
         unique=True,
