@@ -4,7 +4,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 
 
@@ -86,3 +86,16 @@ class MessageViewSet(viewsets.ModelViewSet):
             serializer.save(sender=self.request.user, conversation=conversation)
         except Conversation.DoesNotExist:
             raise ValidationError({"error": "Conversation not found or access denied"})
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if request.user != instance.sender:
+            return Response({"detail": "Not allowed to delete this message."},
+                            status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if request.user != instance.sender:
+            raise PermissionDenied("You are not the sender of this message.")
+        return super().update(request, *args, **kwargs)
