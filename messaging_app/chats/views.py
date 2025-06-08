@@ -1,4 +1,6 @@
 # chats/views.py
+from .filters import MessageFilter
+from .pagination import MessagePagination
 from .permissions import IsParticipantOfConversation
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -70,6 +72,10 @@ class MessageViewSet(viewsets.ModelViewSet):
     filterset_fields = ['sender', 'conversation']
     search_fields = ['content']  # or whatever text fields you have
     ordering_fields = ['timestamp']
+    pagination_class = MessagePagination
+    filterset_class = MessageFilter
+
+
 
     def get_queryset(self):
         return Message.objects.filter(

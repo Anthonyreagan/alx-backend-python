@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'chats',
+    'django_filters',
     'rest_framework_simplejwt'
 
 ]
@@ -52,7 +53,12 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # Only allow access to authenticated users
-    ]
+    ],
+    'DEFAULT_FILTER_BACKENDS':  [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+    'DEFAULT_PAGINATION_CLASS': ['chats.pagination.MessagePagination',]
+
 }
 
 MIDDLEWARE = [
