@@ -1,10 +1,12 @@
 # chats/views.py
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
+
 
 from .models import Conversation, Message, User
 from .serializers import (
@@ -17,6 +19,10 @@ from .serializers import (
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['participants']  # or fields you want to filter by
+    search_fields = ['title', 'description']  # example, update per your model
+    ordering_fields = ['created_at']  # example, update per your model
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -60,6 +66,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['sender', 'conversation']
+    search_fields = ['content']  # or whatever text fields you have
+    ordering_fields = ['timestamp']
 
     def get_queryset(self):
         return Message.objects.filter(
