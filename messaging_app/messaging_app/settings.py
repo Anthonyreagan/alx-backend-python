@@ -82,7 +82,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'messaging_app.wsgi.application'
 
-
+AUTH_USER_MODEL = 'chats.User'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
