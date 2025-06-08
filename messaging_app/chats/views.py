@@ -1,19 +1,22 @@
-# Create your views here.
+# chats/views.py
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
+
 from .models import Conversation, Message, User
 from .serializers import (
     ConversationSerializer,
+    ConversationCreateSerializer,
     MessageSerializer,
-    ConversationCreateSerializer
 )
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -56,25 +59,20 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Only show messages in conversations where user participates
         return Message.objects.filter(
+            conversation__conversation_id=self.kwargs['conversation_pk'],
             conversation__participants=self.request.user
         )
 
     def perform_create(self, serializer):
-        # Automatically set sender to current user
-        conversation_id = self.request.data.get('conversation')
         try:
             conversation = Conversation.objects.get(
-                pk=conversation_id,
+                conversation_id=self.kwargs['conversation_pk'],
                 participants=self.request.user
             )
             serializer.save(sender=self.request.user, conversation=conversation)
         except Conversation.DoesNotExist:
-            return Response(
-                {"error": "Conversation not found or access denied"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            raise ValidationError({"error": "Conversation not found or access denied"})
