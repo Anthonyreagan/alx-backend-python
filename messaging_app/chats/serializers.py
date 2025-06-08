@@ -1,8 +1,17 @@
 from rest_framework import serializers
 from .models import User, Conversation, Message
 
-
 class UserSerializer(serializers.ModelSerializer):
+    # Adding SerializerMethodField example
+    full_name = serializers.SerializerMethodField()
+    # Adding CharField example
+    status = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        help_text="User's status message"
+    )
+
     class Meta:
         model = User
         fields = [
@@ -10,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
+            'full_name',
             'phone_number',
             'profile_picture',
             'status',
@@ -20,6 +30,9 @@ class UserSerializer(serializers.ModelSerializer):
             'profile_picture': {'required': False}
         }
 
+    # SerializerMethodField implementation
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
