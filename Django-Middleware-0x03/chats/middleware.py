@@ -44,7 +44,7 @@ class RestrictAccessByTimeMiddleware:
 
 
 
-class RateLimitMiddleware:
+class OffensiveLanguageMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         # Storage format: {ip: {'count': int, 'window_start': datetime}}
