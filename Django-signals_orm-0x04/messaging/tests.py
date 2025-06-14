@@ -1,50 +1,101 @@
-from django.test import TestCase
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
+from django.contrib import messages
+from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
-from .models import Message, Notification
+from django.db.models import Prefetch
+from .models import Message, MessageHistory
+from django.views.decorators.cache import cache_page
 
-User = get_user_model()
+
+@login_required
+def message_history(request, message_id):
+    message = get_object_or_404(Message, pk=message_id)
+
+    # Verify the user has permission to view this message
+    if request.user not in [message.sender, message.receiver]:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    history = message.history.all().order_by('-edited_at')
+
+    return render(request, 'messaging/message_history.html', {
+        'message': message,
+        'history': history
+    })
 
 
-class MessagingTests(TestCase):
-    def setUp(self):
-        self.user1 = User.objects.create_user(username='user1', password='testpass123')
-        self.user2 = User.objects.create_user(username='user2', password='testpass123')
+@login_required
+@require_POST
+def delete_user(request):
+    """View to delete user account and all related data"""
+    user = request.user
+    logout(request)  # Logout before deletion
+    user.delete()  # This will trigger the post_delete signal
 
-    def test_message_creation(self):
-        message = Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Hello there!"
+    messages.success(request, 'Your account has been permanently deleted.')
+    return redirect('home')
+
+
+@login_required
+def message_thread(request, message_id):
+    # Get the root message with optimized queries
+    message = get_object_or_404(
+        Message.objects
+        .select_related('sender', 'receiver')
+        .prefetch_related(
+            Prefetch('replies',
+                     queryset=Message.objects
+                     .select_related('sender')
+                     .filter(sender=request.user)  # Filter by current user
+                     .order_by('timestamp')
+                     )
+        ),
+        pk=message_id,
+        sender=request.user  # Ensure user owns the message
+    )
+
+    # Get all replies in the thread (recursive)
+    def get_all_replies(message):
+        return Message.objects.filter(
+            parent_message=message
+        ).select_related('sender').prefetch_related(
+            Prefetch('replies', queryset=Message.objects.select_related('sender'))
         )
-        self.assertEqual(Message.objects.count(), 1)
-        self.assertEqual(message.sender, self.user1)
-        self.assertEqual(message.receiver, self.user2)
 
-    def test_notification_creation_signal(self):
-        # Verify notification is created automatically via signal
-        message = Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Test notification"
-        )
-        self.assertEqual(Notification.objects.count(), 1)
-        notification = Notification.objects.first()
-        self.assertEqual(notification.user, self.user2)
-        self.assertEqual(notification.message, message)
-        self.assertFalse(notification.is_read)
+    replies = get_all_replies(message)
 
-    def test_notification_str_representation(self):
-        message = Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Test message"
-        )
-        notification = Notification.objects.create(
-            user=self.user2,
-            message=message,
-            is_read=False
-        )
-        self.assertEqual(
-            str(notification),
-            f"Notification for {self.user2} about message #{message.id}"
-        )
+    context = {
+        'message': message,
+        'replies': replies
+    }
+
+    return render(request, 'messaging/message_thread.html', context)
+
+
+@login_required
+def inbox(request):
+    """View showing only unread messages using custom manager"""
+    unread_messages = Message.unread.unread_for_user(request.user).only(
+        'id', 'content', 'timestamp', 'sender__username'
+    )
+
+    return render(request, 'messaging/inbox.html', {
+        'messages': unread_messages
+    })
+
+
+@login_required
+@cache_page(60)  # 60 second cache timeout
+def message_list(request):
+    """Cached view showing message list"""
+    messages = Message.objects.filter(
+        receiver=request.user
+    ).select_related('sender').only(
+        'id', 'content', 'timestamp', 'sender__username'
+    ).order_by('-timestamp')
+
+    return render(request, 'chats/message_list.html', {
+        'messages': messages
+    })
