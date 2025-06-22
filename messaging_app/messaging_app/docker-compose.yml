@@ -1,0 +1,44 @@
+# Docker Compose file for Django Messaging App with MySQL
+
+version: '3.8' # Specify Docker Compose file format version
+
+services:
+  # Web service for the Django application
+  web:
+    build: ..
+    container_name: messaging_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db: # Ensure the 'db' service is healthy before the 'web' service starts
+        condition: service_healthy
+    env_file:
+      - ../.env
+
+  # Database service for MySQL
+  db:
+    image: mysql:8.0
+    container_name: messaging_db
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck: # <--- ADD THIS NEW SECTION FOR HEALTHCHECK
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s # Check every 10 seconds
+      timeout: 5s   # Wait up to 5 seconds for a response
+      retries: 5    # Retry 5 times before marking as unhealthy
+      start_period: 30s # Give MySQL 30 seconds to initialize before starting health checks
+                        # This prevents checks from failing while DB is still setting up
+
+# Define named volumes for data persistence
+volumes:
+  db_data:
