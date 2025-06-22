@@ -97,7 +97,7 @@ AUTH_USER_MODEL = 'chats.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQL_DATABASE'),
+        'NAME': os.environ.get('MYSQL_DB'),
         'USER': os.environ.get('MYSQL_USER'),
         'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
         'HOST': 'db',  # This is the name of your DB service in docker-compose.yml
