@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir -r Requirements.txt
 # Copy the entire Django project into the container at /app
 # The '.' at the end means "copy everything from the current directory (host)
 # to the WORKDIR (/app) in the container."
-COPY . /app
+COPY .. /app
 
 # Expose the port that the Django development server runs on
 # The default Django runserver port is 8000
