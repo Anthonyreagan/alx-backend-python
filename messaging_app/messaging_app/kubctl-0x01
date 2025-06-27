@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Scale the Django app deployment to 3 replicas
+echo "📦 Scaling messaging-app-deployment to 3 replicas..."
+kubectl scale deployment messaging-app-deployment --replicas=3
+
+# Wait for the pods to be ready
+echo "⏳ Waiting for all pods to be ready..."
+kubectl wait --for=condition=available --timeout=60s deployment/messaging-app-deployment
+
+# Show running pods
+echo "🔍 Current pods:"
+kubectl get pods -l app=messaging-app
+
+# Perform load testing using wrk (ensure wrk is installed)
+echo "🚀 Performing load testing with wrk..."
+
+# Get the NodePort (if you changed service to NodePort)
+SERVICE_PORT=$(kubectl get service messaging-app-service -o jsonpath='{.spec.ports[0].nodePort}')
+NODE_IP=$(minikube ip)
+
+echo "🌐 Testing on http://${NODE_IP}:${SERVICE_PORT}"
+
+wrk -t2 -c20 -d15s http://${NODE_IP}:${SERVICE_PORT}/
+
+# Show resource usage
+echo "📊 Monitoring resource usage:"
+kubectl top pods
