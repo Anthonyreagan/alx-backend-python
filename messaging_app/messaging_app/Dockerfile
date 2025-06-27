@@ -1,15 +1,22 @@
-# File: messaging_app/Dockerfile
+FROM python:3.10-slim
 
-FROM python:3.10
-
+# Set working directory
 WORKDIR /app
 
-COPY requirements.txt /app/
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for caching
+COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY .. /app
+# Copy application code
+COPY .. .
 
-# For 'docker run', use -p 8000:8000 to map this port.
 EXPOSE 8000
-
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

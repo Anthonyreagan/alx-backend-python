@@ -5,7 +5,7 @@ version: '3.8' # Specify Docker Compose file format version
 services:
   # Web service for the Django application
   web:
-    build: ..
+    build: ../..
     container_name: messaging_web
     command: python3 manage.py runserver 0.0.0.0:8000
     volumes:
