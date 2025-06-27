@@ -1,0 +1,15 @@
+# messaging_app/kubeservice.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: messaging-service
+spec:
+  selector:
+    app: messaging
+    version: blue  # Change to green when ready
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+
+
