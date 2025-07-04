@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    environment {
+        PROJECT_DIR = 'messaging_app'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git(
+                    url: 'https://github.com/alx-backend-python.git',
+                    credentialsId: 'github-credentials',
+                    branch: 'main'
+                )
+            }
+        }
+
+        stage('Set Up Python') {
+            steps {
+                dir(PROJECT_DIR) {
+                    sh 'python -m pip install --upgrade pip'
+                    sh 'pip install -r requirements.txt'
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                dir(PROJECT_DIR) {
+                    sh 'pytest --junitxml=test-results.xml'
+                }
+            }
+            post {
+                always {
+                    junit "${PROJECT_DIR}/test-results.xml"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
