@@ -1,42 +1,63 @@
 pipeline {
     agent any
 
-    environment {
-        PROJECT_DIR = 'messaging_app'
-        PYTHON_VERSION = 'python3'  // or 'python' depending on your system
+    tools {
+        // Assuming Python 3 is installed on your Jenkins agent or available via a tool installer
+        // If not, you might need to configure Python in Manage Jenkins > Global Tool Configuration
+        python 'python3' // This refers to a Python installation configured in Global Tool Configuration
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Source Code') {
             steps {
-                git(
-                    url: 'https://github.com/alx-backend-python.git',
-                    credentialsId: 'github-credentials',
-                    branch: 'main',
-                    changelog: true,
-                    poll: false
-                )
+                script {
+                    // Git SCM is configured in the job, so it automatically checks out
+                    // We just need to navigate to the messaging_app directory
+                    dir('messaging_app') {
+                        echo 'Changed directory to messaging_app'
+                    }
+                }
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                dir(PROJECT_DIR) {
-                    sh '${PYTHON_VERSION} -m pip install --upgrade pip'
-                    sh '${PYTHON_VERSION} -m pip install -r requirements.txt'
+                script {
+                    dir('messaging_app') {
+                        echo 'Installing Python dependencies...'
+                        sh 'pip install -r requirements.txt'
+                    }
                 }
             }
         }
 
         stage('Run Tests') {
             steps {
-                dir(PROJECT_DIR) {
-                    sh '${PYTHON_VERSION} -m pytest tests/ --junitxml=test-results.xml'
+                script {
+                    dir('messaging_app') {
+                        echo 'Running tests with pytest...'
+                        // Ensure pytest and pytest-html are in requirements.txt
+                        sh 'pytest --junitxml=test-results.xml --html=test-report.html --self-contained-html'
+                    }
                 }
             }
             post {
                 always {
-                    junit "${PROJECT_DIR}/test-results.xml"
+                    // Publish JUnit test results
+                    dir('messaging_app') {
+                        junit 'test-results.xml'
+                    }
+                }
+            }
+        }
+
+        stage('Archive Test Report') {
+            steps {
+                script {
+                    dir('messaging_app') {
+                        echo 'Archiving test report...'
+                        archiveArtifacts artifacts: 'test-report.html', fingerprint: true
+                    }
                 }
             }
         }
@@ -44,7 +65,13 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            echo 'Pipeline finished.'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
