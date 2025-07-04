@@ -2,17 +2,14 @@ pipeline {
     agent any
 
     tools {
-        // Assuming Python 3 is installed on your Jenkins agent or available via a tool installer
-        // If not, you might need to configure Python in Manage Jenkins > Global Tool Configuration
-        python 'python3' // This refers to a Python installation configured in Global Tool Configuration
+        python 'python3' // This ensures Python 3 is used if configured globally
     }
 
     stages {
         stage('Checkout Source Code') {
             steps {
                 script {
-                    // Git SCM is configured in the job, so it automatically checks out
-                    // We just need to navigate to the messaging_app directory
+                    // Jenkins automatically checks out the repo. We just need to move into the 'messaging_app' directory.
                     dir('messaging_app') {
                         echo 'Changed directory to messaging_app'
                     }
@@ -23,8 +20,9 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    dir('messaging_app') {
+                    dir('messaging_app') { // Execute command within messaging_app
                         echo 'Installing Python dependencies...'
+                        // 'pip' here will use the Python associated with the 'python3' tool
                         sh 'pip install -r requirements.txt'
                     }
                 }
@@ -34,16 +32,15 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    dir('messaging_app') {
+                    dir('messaging_app') { // Execute command within messaging_app
                         echo 'Running tests with pytest...'
-                        // Ensure pytest and pytest-html are in requirements.txt
                         sh 'pytest --junitxml=test-results.xml --html=test-report.html --self-contained-html'
                     }
                 }
             }
             post {
                 always {
-                    // Publish JUnit test results
+                    // Publish JUnit test results from messaging_app directory
                     dir('messaging_app') {
                         junit 'test-results.xml'
                     }
@@ -54,7 +51,7 @@ pipeline {
         stage('Archive Test Report') {
             steps {
                 script {
-                    dir('messaging_app') {
+                    dir('messaging_app') { // Execute command within messaging_app
                         echo 'Archiving test report...'
                         archiveArtifacts artifacts: 'test-report.html', fingerprint: true
                     }
@@ -62,16 +59,5 @@ pipeline {
             }
         }
     }
-
-    post {
-        always {
-            echo 'Pipeline finished.'
-        }
-        success {
-            echo 'Pipeline completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed!'
-        }
-    }
+    // ... post section
 }
