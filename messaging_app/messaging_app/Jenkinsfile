@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         PROJECT_DIR = 'messaging_app'
+        PYTHON_VERSION = 'python3'  // or 'python' depending on your system
     }
 
     stages {
@@ -11,16 +12,18 @@ pipeline {
                 git(
                     url: 'https://github.com/alx-backend-python.git',
                     credentialsId: 'github-credentials',
-                    branch: 'main'
+                    branch: 'main',
+                    changelog: true,
+                    poll: false
                 )
             }
         }
 
-        stage('Set Up Python') {
+        stage('Install Dependencies') {
             steps {
                 dir(PROJECT_DIR) {
-                    sh 'python -m pip install --upgrade pip'
-                    sh 'pip install -r requirements.txt'
+                    sh '${PYTHON_VERSION} -m pip install --upgrade pip'
+                    sh '${PYTHON_VERSION} -m pip install -r requirements.txt'
                 }
             }
         }
@@ -28,7 +31,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 dir(PROJECT_DIR) {
-                    sh 'pytest --junitxml=test-results.xml'
+                    sh '${PYTHON_VERSION} -m pytest tests/ --junitxml=test-results.xml'
                 }
             }
             post {
