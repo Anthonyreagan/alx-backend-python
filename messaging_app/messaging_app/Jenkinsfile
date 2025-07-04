@@ -1,63 +1,62 @@
+
 pipeline {
     agent any
 
-    tools {
-        python 'python3' // This ensures Python 3 is used if configured globally
+    environment {
+        DOCKER_IMAGE = 'damaris70/messaging-app'
     }
 
     stages {
-        stage('Checkout Source Code') {
+        stage('Clone Repository') {
             steps {
-                script {
-                    // Jenkins automatically checks out the repo. We just need to move into the 'messaging_app' directory.
-                    dir('messaging_app') {
-                        echo 'Changed directory to messaging_app'
-                    }
-                }
+                echo 'Cloning repository using credentials...'
+                git url: 'https://github.com/Anthonyreagan/alx-backend-python.git', branch: 'main', credentialsId: 'github-creds'
+                sh 'git branch'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install Python and Dependencies') {
             steps {
-                script {
-                    dir('messaging_app') { // Execute command within messaging_app
-                        echo 'Installing Python dependencies...'
-                        // 'pip' here will use the Python associated with the 'python3' tool
-                        sh 'pip install -r requirements.txt'
-                    }
-                }
+                echo 'Installing Python and dependencies...'
+                sh '''
+                    apt-get update
+                    apt-get install -y python3 python3-pip python3-venv
+                    pip3 install -r messaging_app/requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                script {
-                    dir('messaging_app') { // Execute command within messaging_app
-                        echo 'Running tests with pytest...'
-                        sh 'pytest --junitxml=test-results.xml --html=test-report.html --self-contained-html'
-                    }
-                }
-            }
-            post {
-                always {
-                    // Publish JUnit test results from messaging_app directory
-                    dir('messaging_app') {
-                        junit 'test-results.xml'
-                    }
-                }
+                echo 'Running tests with pytest...'
+                sh 'pytest messaging_app/tests --junitxml=messaging_app/test-report.xml'
             }
         }
 
-        stage('Archive Test Report') {
+        stage('Publish Test Report') {
             steps {
-                script {
-                    dir('messaging_app') { // Execute command within messaging_app
-                        echo 'Archiving test report...'
-                        archiveArtifacts artifacts: 'test-report.html', fingerprint: true
-                    }
+                echo 'Publishing test results...'
+                junit 'messaging_app/test-report.xml'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image from messaging_app directory...'
+                sh 'docker build -t $DOCKER_IMAGE messaging_app/'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo 'Logging in to Docker Hub and pushing image...'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $DOCKER_IMAGE
+                    '''
                 }
             }
         }
     }
-    // ... post section
 }
